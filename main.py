@@ -35,6 +35,10 @@ class Message(BaseModel):
 async def chat(request: Message):
     global last_audio_data
 
+    print(f"🧠 Agent: {request.agent}")
+    print(f"🗣️ Voice ID: {request.voice_id}")
+    print(f"💬 User Input: {request.input[:80]}...")
+
     # Route to the correct agent handler
     if request.agent == "samantha":
         agent_response = await sam_agent(request.input)
@@ -59,8 +63,12 @@ async def chat(request: Message):
     else:
         agent_response = "Sorry, I don't recognize that agent yet."
 
+    print(f"🧾 Agent Response: {agent_response[:100]}...")
+
     # Generate audio using the agent's assigned voice
     last_audio_data = await synthesize_voice(agent_response, voice_id=request.voice_id)
+
+    print(f"🔉 Audio byte length: {len(last_audio_data)}")
 
     return {
         "text": agent_response,
