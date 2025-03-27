@@ -138,8 +138,14 @@ struct AgentChatView: View {
     // MARK: - Audio Playback
    
     func playAudio(from urlString: String) {
-        guard let url = URL(string: urlString) else { return }
-        player = AVPlayer(url: url)
-        player?.play()
+        DispatchQueue.main.async {
+            guard let url = URL(string: urlString) else {
+                print("❌ Invalid URL: \(urlString)")
+                return
+            }
+            print("🎧 Playing audio from: \(url)")
+            player = AVPlayer(url: url)
+            player?.play()
+        }
     }
 }
