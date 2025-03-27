@@ -1,6 +1,7 @@
 from openai import AsyncOpenAI
+import os
 
-client = AsyncOpenAI(api_key="sk-proj-UA7X...")  # your key here
+client = AsyncOpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 SYSTEM_PROMPT = "You are Samantha, a brilliant and helpful personal assistant. Respond with warmth and clarity."
 

@@ -1,7 +1,14 @@
 import httpx
 import base64
+import os
 
-ELEVENLABS_API_KEY = "sk_e6bd945a67ffa4e9938825108cdbe6a6e664e2061275be62"
+ELEVENLABS_API_KEY = os.getenv("ELEVENLABS_API_KEY")
+
+# use it in the header
+headers = {
+    "xi-api-key": ELEVENLABS_API_KEY,
+    "Content-Type": "application/json"
+}
 BASE_URL = "https://api.elevenlabs.io/v1/text-to-speech"
 
 async def synthesize_voice(text: str, voice_id: str) -> str:
