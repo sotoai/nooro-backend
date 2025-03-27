@@ -17,13 +17,14 @@ last_audio_data: bytes = b""
 class Message(BaseModel):
     agent: str
     input: str
+    voice_id: str
 
 @app.post("/chat")
 async def chat(request: Message):
     global last_audio_data
     agent_response = await sam_agent(request.input)
-    last_audio_data = await synthesize_voice(agent_response, voice_id="YXpFCvM1S3JbWEJhoskW")
-    
+    last_audio_data = await synthesize_voice(agent_response, voice_id=request.voice_id)
+
     return {
         "text": agent_response,
         "audio_url": "/audio-stream"

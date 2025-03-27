@@ -1,22 +1,25 @@
 import SwiftUI
+import AVFoundation
 
-struct Agent {
+struct Agent: Identifiable, Equatable {
     let id = UUID()
     let name: String
     let title: String
     let imageName: String
     var isSpeaking: Bool
+    let voiceID: String
 }
 
 struct AgentChatView: View {
-    let agent: Agent
+    @Binding var agent: Agent
     @State private var messages: [ChatMessage] = [
         ChatMessage(isFromUser: true, text: "Hi Sam. Can you please schedule some time with Mike Haro this coming Wednesday?"),
         ChatMessage(isFromUser: false, text: "Absolutely! Your day already looks pretty full. Should we move things around?")
     ]
+    @State private var player: AVPlayer? = nil
     @State private var inputText = ""
-
-    // MARK: - Computed Colors (Platform-Safe)
+    @State private var scrollToBottomID = UUID()
+    
     var cardBackground: Color {
         #if os(iOS)
         return Color(UIColor.systemGray6)
@@ -55,10 +58,11 @@ struct AgentChatView: View {
                 Spacer()
 
                 Button(action: {
-                    // Handle speaker toggle
+                    agent.isSpeaking.toggle()
+                    print("🔊 Toggled speaker. isSpeaking is now: \(agent.isSpeaking)")
                 }) {
                     Image(systemName: agent.isSpeaking ? "speaker.wave.2.fill" : "speaker.slash.fill")
-                        .foregroundColor(.gray)
+                        .foregroundColor(agent.isSpeaking ? .blue : .gray)
                 }
             }
             .padding()
@@ -68,14 +72,25 @@ struct AgentChatView: View {
             .padding(.horizontal)
 
             // Messages
-            ScrollView {
-                VStack(spacing: 12) {
-                    ForEach(messages) { message in
-                        ChatBubbleView(message: message)
+            ScrollViewReader { scrollViewProxy in
+                ScrollView {
+                    VStack(spacing: 12) {
+                        ForEach(messages) { message in
+                            ChatBubbleView(message: message)
+                        }
+                        // Invisible spacer to scroll to
+                        Color.clear
+                            .frame(height: 1)
+                            .id(scrollToBottomID)
+                    }
+                    .padding(.top)
+                    .frame(maxWidth: .infinity, alignment: .top)
+                }
+                .onChange(of: messages.count) {
+                    withAnimation {
+                        scrollViewProxy.scrollTo(scrollToBottomID, anchor: .bottom)
                     }
                 }
-                .padding(.top)
-                .frame(maxWidth: .infinity, alignment: .top) // <- add this
             }
 
             // Input Field
@@ -87,8 +102,28 @@ struct AgentChatView: View {
 
                 Button(action: {
                     guard !inputText.isEmpty else { return }
-                    messages.append(ChatMessage(isFromUser: true, text: inputText))
+
+                    let userMessage = ChatMessage(isFromUser: true, text: inputText)
+                    messages.append(userMessage)
+                    let outgoingText = inputText
                     inputText = ""
+
+                    ChatService.shared.sendMessage(to: agent.name.lowercased(), input: outgoingText, voiceID: agent.voiceID) { result in
+                        switch result {
+                        case .success(let response):
+                            print("🟢 GPT-4 response:", response.text)
+                            print("🟢 Audio URL:", "https://nooro-backend.onrender.com\(response.audio_url)")
+                            let reply = ChatMessage(isFromUser: false, text: response.text)
+                            DispatchQueue.main.async {
+                                messages.append(reply)
+                                if agent.isSpeaking {
+                                    playAudio(from: "https://nooro-backend.onrender.com\(response.audio_url)")
+                                }
+                            }
+                        case .failure(let error):
+                            print("❌ Chat API error: \(error.localizedDescription)")
+                        }
+                    }
                 }) {
                     Image(systemName: "paperplane.fill")
                         .padding(.horizontal)
@@ -98,5 +133,13 @@ struct AgentChatView: View {
             .padding(.horizontal)
             .padding(.bottom, 10)
         }
+    }
+
+    // MARK: - Audio Playback
+   
+    func playAudio(from urlString: String) {
+        guard let url = URL(string: urlString) else { return }
+        player = AVPlayer(url: url)
+        player?.play()
     }
 }
