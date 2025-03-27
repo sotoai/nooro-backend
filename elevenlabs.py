@@ -4,7 +4,7 @@ import httpx
 ELEVENLABS_API_KEY = os.getenv("ELEVENLABS_API_KEY")
 BASE_URL = "https://api.elevenlabs.io/v1/text-to-speech"
 
-async def synthesize_voice(text: str, voice_id: str) -> str:
+async def synthesize_voice(text: str, voice_id: str) -> bytes:
     async with httpx.AsyncClient(timeout=30.0) as client:
         response = await client.post(
             f"{BASE_URL}/{voice_id}",
@@ -21,10 +21,4 @@ async def synthesize_voice(text: str, voice_id: str) -> str:
                 }
             }
         )
-
-        audio_data = response.content
-        audio_path = f"static/audio_{voice_id}.mp3"
-        with open(audio_path, "wb") as f:
-            f.write(audio_data)
-
-        return f"/{audio_path}"
+        return response.content  # return audio as bytes (no file writing)
