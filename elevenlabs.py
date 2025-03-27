@@ -5,6 +5,9 @@ ELEVENLABS_API_KEY = os.getenv("ELEVENLABS_API_KEY")
 BASE_URL = "https://api.elevenlabs.io/v1/text-to-speech"
 
 async def synthesize_voice(text: str, voice_id: str) -> bytes:
+    print(f"🔈 [ElevenLabs] Synthesizing voice ID: {voice_id}")
+    print(f"📝 [ElevenLabs] Text to synthesize: {text[:100]}...")
+
     async with httpx.AsyncClient(timeout=30.0) as client:
         response = await client.post(
             f"{BASE_URL}/{voice_id}",
@@ -21,4 +24,11 @@ async def synthesize_voice(text: str, voice_id: str) -> bytes:
                 }
             }
         )
-        return response.content  # return audio as bytes (no file writing)
+
+        print(f"📡 [ElevenLabs] Response status: {response.status_code}")
+
+        if response.status_code != 200:
+            print(f"❌ [ElevenLabs] Error response: {response.text}")
+            return b""
+
+        return response.content
